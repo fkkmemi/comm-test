@@ -1,61 +1,50 @@
 <template>
   <v-app>
-    <v-app-bar
-      app
-      color="primary"
-      dark
-    >
-      <div class="d-flex align-center">
-        <v-img
-          alt="Vuetify Logo"
-          class="shrink mr-2"
-          contain
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-dark.png"
-          transition="scale-transition"
-          width="40"
-        />
+    <v-app-bar app color="primary" dark>
+      tester
 
-        <v-img
-          alt="Vuetify Name"
-          class="shrink mt-1 hidden-sm-and-down"
-          contain
-          min-width="100"
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-name-dark.png"
-          width="100"
-        />
-      </div>
-
-      <v-spacer></v-spacer>
-
-      <v-btn
-        href="https://github.com/vuetifyjs/vuetify/releases/latest"
-        target="_blank"
-        text
-      >
-        <span class="mr-2">Latest Release</span>
-        <v-icon>mdi-open-in-new</v-icon>
-      </v-btn>
     </v-app-bar>
 
     <v-main>
-      <HelloWorld/>
+      <v-container fluid>
+        <v-card>
+          <v-toolbar color="accent" dark dense flat>
+            connect
+          </v-toolbar>
+          <v-card-text>
+            ijijiw
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer/>
+            <v-btn color="success" @click="serverOpen">열기</v-btn>
+            <v-btn color="error" @click="serverClose">닫기</v-btn>
+
+          </v-card-actions>
+        </v-card>
+      </v-container>
     </v-main>
   </v-app>
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
-import HelloWorld from './components/HelloWorld.vue'
+import { Vue, Component } from 'vue-property-decorator'
 
-export default Vue.extend({
-  name: 'App',
-
-  components: {
-    HelloWorld
-  },
-
-  data: () => ({
-    //
-  })
+@Component<App>({
+  created () {
+    console.log(window.ipcRenderer)
+    window.ipcRenderer.on('asynchronous-reply', (event: Electron.IpcRendererEvent, arg: string) => {
+      // console.log(event)
+      console.log(arg)
+    })
+  }
 })
+export default class App extends Vue {
+  serverOpen () {
+    window.ipcRenderer.send('asynchronous-message', 'ping')
+  }
+
+  serverClose () {
+    //
+  }
+}
 </script>
