@@ -2,6 +2,10 @@
   <v-app>
     <v-app-bar app color="primary" dark>
       tester
+      <v-spacer/>
+      <v-btn icon @click="!serverActive ? serverOpen() : serverClose()">
+        <v-icon>{{serverActive ? 'mdi-lan-connect' : 'mdi-lan-disconnect' }}</v-icon>
+      </v-btn>
 
     </v-app-bar>
 
@@ -12,12 +16,14 @@
             connect
           </v-toolbar>
           <v-card-text>
-            ijijiw
+            <v-textarea
+              v-model="text"
+              outlined
+              label="packet"
+             />
           </v-card-text>
           <v-card-actions>
             <v-spacer/>
-            <v-btn color="success" @click="serverOpen">열기</v-btn>
-            <v-btn color="error" @click="serverClose">닫기</v-btn>
 
           </v-card-actions>
         </v-card>
@@ -29,22 +35,38 @@
 <script lang="ts">
 import { Vue, Component } from 'vue-property-decorator'
 
+const ipcRenderer = window.ipcRenderer
+
 @Component<App>({
   created () {
-    console.log(window.ipcRenderer)
-    window.ipcRenderer.on('asynchronous-reply', (event: Electron.IpcRendererEvent, arg: string) => {
-      // console.log(event)
-      console.log(arg)
-    })
+    this.init()
   }
 })
 export default class App extends Vue {
+  serverActive = false
+  text = ''
+
+  init () {
+    ipcRenderer.on('server', (event: Electron.IpcRendererEvent, active: boolean) => {
+      console.log(active)
+      this.serverActive = active
+    })
+    ipcRenderer.on('socket', (event: Electron.IpcRendererEvent, status: string, data: string, ip: string) => {
+      console.log(status)
+      console.log(data)
+
+      // this.text = status + ' ' + data + ' ' + ip + '\n' + this.text
+      this.text = `${status} ${data} ${ip}\n${this.text}`
+    })
+  }
+
   serverOpen () {
-    window.ipcRenderer.send('asynchronous-message', 'ping')
+    // window.ipcRenderer.send('asynchronous-message', 'ping')
+    ipcRenderer.send('server', 'open')
   }
 
   serverClose () {
-    //
+    ipcRenderer.send('server', 'close')
   }
 }
 </script>
