@@ -3,7 +3,7 @@ module.exports = {
     'vuetify'
   ],
   configureWebpack: {
-    devtool: 'source-map'
+    devtool: 'source-map' // 주석처리
   },
 
   pluginOptions: {
