@@ -15,8 +15,8 @@ export default class ExSocket {
     this.info.ip = socket.remoteAddress || 'unknown'
   }
 
-  write (bytes: Buffer) {
+  write (bytes: string) {
     if (!this.socket) return
-    this.socket.write(bytes)
+    this.socket.write(bytes + '\n')
   }
 }

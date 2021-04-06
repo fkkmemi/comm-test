@@ -77,29 +77,59 @@
             connect
           </v-toolbar>
           <v-card-text>
-            <v-textarea
-              v-model="text"
-              outlined
-              label="packet"
-            />
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer />
-          </v-card-actions>
-          <v-card-text>
-            <v-list-item
-              v-for="item in socketInfos"
-              :key="item.id"
-            >
-              <v-list-item-content>
-                <v-list-item-title>
-                  {{ item.id }}
-                </v-list-item-title>
-                <v-list-item-subtitle>
-                  {{ item.ip }}
-                </v-list-item-subtitle>
-              </v-list-item-content>
-            </v-list-item>
+            <v-row>
+              <v-col
+                v-for="item in socketInfos"
+                :key="item.id"
+                cols="12"
+                sm="6"
+              >
+                <v-card color="">
+                  <v-toolbar
+                    color="accent"
+                    dense
+                    dark
+                  >
+                    {{ item.id }}
+                    <v-spacer />
+                    <v-btn
+                      icon
+                      @click="item.hexView=!item.hexView"
+                    >
+                      <v-icon>mdi-hexagon-outline</v-icon>
+                    </v-btn>
+                  </v-toolbar>
+                  <v-card-text>
+                    <v-text-field
+                      v-model="item.message"
+                      outlined
+                      dense
+                      hide-details
+                      append-icon="mdi-send"
+                      @click:append="send(item)"
+                      @keydown.enter="send(item)"
+                    />
+                  </v-card-text>
+                  <v-list-item
+                    v-for="(m, i) in item.messages"
+                    :key="i"
+                  >
+                    <v-list-item-icon>
+                      <v-icon>{{ m.arrow === 'r' ? 'mdi-arrow-left' : 'mdi-arrow-right' }}</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-content>
+                      <v-list-item-title v-if="item.hexView">
+                        {{ m.hex }}
+                      </v-list-item-title>
+                      <v-list-item-title v-else>
+                        {{ m.text }}
+                      </v-list-item-title>
+                      <v-list-item-subtitle>{{ m.createdAt.toLocaleTimeString() }}</v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-card>
+              </v-col>
+            </v-row>
           </v-card-text>
         </v-card>
       </v-container>
@@ -110,6 +140,19 @@
 <script lang="ts">
 import { Vue, Component } from 'vue-property-decorator'
 import { SocketInfo } from './models/socket-info'
+
+interface MessageInfo {
+  text: string;
+  hex: string;
+  arrow: string;
+  createdAt: Date;
+}
+
+interface ExSocketInfo extends SocketInfo {
+  messages: MessageInfo[];
+  hexView: boolean;
+  message: string;
+}
 
 const ipcRenderer = window.ipcRenderer
 
@@ -123,9 +166,12 @@ export default class App extends Vue {
   text = ''
   dialog = false
   port = 3000
-  socketInfos: SocketInfo[] = []
+  socketInfos: Partial<ExSocketInfo>[] = []
 
   init () {
+    console.log('init')
+    ipcRenderer.send('server-status')
+
     ipcRenderer.on('server', (event: Electron.IpcRendererEvent, active: boolean) => {
       console.log(active)
       this.serverActive = active
@@ -138,10 +184,29 @@ export default class App extends Vue {
       this.text = `${status} ${data} ${ip}\n${this.text}`
     })
 
+    ipcRenderer.on('socket-data', (event: Electron.IpcRendererEvent, info: SocketInfo, text: string, hex: string, arrow: string) => {
+      // console.log(info)
+      // console.log(text)
+      // console.log(hex)
+      // console.log(arrow)
+      const socketInfo = this.socketInfos.find(s => s.id === info.id)
+      if (!socketInfo || !socketInfo.messages) return
+      socketInfo.messages.unshift({
+        text, hex, arrow, createdAt: new Date()
+      })
+      console.log(socketInfo)
+    })
+
     ipcRenderer.on('socket-opened', (event: Electron.IpcRendererEvent, info: SocketInfo) => {
       console.log(info)
       console.log('opened')
-      this.socketInfos.push(info)
+      const exInfo = {
+        messages: [],
+        hexView: false,
+        message: ''
+      }
+      Object.assign(exInfo, info)
+      this.socketInfos.push(exInfo)
     })
 
     ipcRenderer.on('socket-closed', (event: Electron.IpcRendererEvent, info: SocketInfo) => {
@@ -161,6 +226,11 @@ export default class App extends Vue {
   serverClose () {
     ipcRenderer.send('server-close')
     this.dialog = false
+  }
+
+  send (item: ExSocketInfo) {
+    ipcRenderer.send('socket-data', item, item.message)
+    item.message = ''
   }
 }
 </script>
